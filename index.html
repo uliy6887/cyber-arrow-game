@@ -1,696 +1,193 @@
 <!DOCTYPE html>
-<html lang="zh-TW">
+<html lang="zh-Hant">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>⚡ 一箭又一箭 · 賽博弓道</title>
-    <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-            user-select: none;
-            -webkit-tap-highlight-color: transparent;
-        }
-
-        body {
-            background: radial-gradient(circle at 20% 30%, #0a0f1a, #03060c);
-            font-family: 'Segoe UI', 'Orbitron', 'Rajdhani', system-ui, -apple-system;
-            min-height: 100vh;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            padding: 16px;
-        }
-
-        body::before {
-            content: "";
-            position: fixed;
-            inset: 0;
-            background: repeating-linear-gradient(0deg, rgba(0,255,255,0.02) 0px, rgba(0,255,255,0.02) 2px, transparent 2px, transparent 8px);
-            pointer-events: none;
-            z-index: 999;
-        }
-
-        .game-wrapper {
-            max-width: 1100px;
-            width: 100%;
-            display: flex;
-            flex-wrap: wrap;
-            gap: 20px;
-            justify-content: center;
-            align-items: flex-start;
-        }
-
-        .game-area {
-            flex: 2;
-            min-width: 280px;
-            background: rgba(0, 0, 0, 0.55);
-            backdrop-filter: blur(4px);
-            border-radius: 32px;
-            border: 1px solid #0ff;
-            box-shadow: 0 0 20px rgba(0, 255, 255, 0.3);
-            overflow: hidden;
-        }
-
-        .status-bar {
-            padding: 12px 20px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            background: rgba(10, 20, 30, 0.8);
-            border-bottom: 1px solid #0ff;
-            flex-wrap: wrap;
-            gap: 8px;
-        }
-
-        .player-info {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-        }
-
-        .avatar {
-            width: 44px;
-            height: 44px;
-            border-radius: 50%;
-            background: #1e2a3a;
-            border: 1px solid #0ff;
-            box-shadow: 0 0 8px #0ff;
-            background-size: cover;
-            background-position: center;
-        }
-
-        .player-name {
-            font-weight: bold;
-            color: #7df9ff;
-            text-shadow: 0 0 3px #0ff;
-            font-size: 1rem;
-        }
-
-        .score-panel {
-            text-align: center;
-        }
-
-        .score-label {
-            font-size: 0.7rem;
-            color: #8aa;
-            letter-spacing: 2px;
-        }
-
-        .score-value {
-            font-size: 2rem;
-            font-weight: bold;
-            font-family: monospace;
-            color: #0ff;
-            text-shadow: 0 0 6px #0ff;
-            line-height: 1;
-        }
-
-        .hearts {
-            font-size: 1.6rem;
-            letter-spacing: 4px;
-            color: #ff4d6d;
-            text-shadow: 0 0 2px #ff4d6d;
-        }
-
-        canvas {
-            display: block;
-            width: 100%;
-            background: #040a12;
-            cursor: pointer;
-            touch-action: manipulation;
-        }
-
-        .leaderboard {
-            flex: 1;
-            min-width: 240px;
-            background: rgba(0, 0, 0, 0.65);
-            backdrop-filter: blur(8px);
-            border-radius: 28px;
-            border: 1px solid #f0f;
-            box-shadow: 0 0 18px #f0f3;
-            padding: 16px 12px;
-        }
-
-        .leaderboard h3 {
-            font-family: monospace;
-            color: #f0f;
-            text-align: center;
-            margin-bottom: 12px;
-            font-size: 1.4rem;
-            letter-spacing: 2px;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-        }
-
-        .refresh-icon {
-            cursor: pointer;
-            background: #2a1e3a;
-            padding: 4px 8px;
-            border-radius: 40px;
-            font-size: 1rem;
-        }
-
-        .rank-list {
-            max-height: 420px;
-            overflow-y: auto;
-        }
-
-        .rank-item {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            padding: 8px 10px;
-            margin: 6px 0;
-            background: #11161f80;
-            border-radius: 40px;
-            border-left: 3px solid cyan;
-        }
-
-        .rank-avatar {
-            width: 32px;
-            height: 32px;
-            border-radius: 50%;
-            background: #2c3e44;
-            background-size: cover;
-        }
-
-        .rank-name {
-            flex: 1;
-            font-size: 0.85rem;
-            color: #b0e0ff;
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-        }
-
-        .rank-score {
-            font-weight: bold;
-            color: gold;
-            font-family: monospace;
-        }
-
-        .login-overlay, .gameover-overlay {
-            position: fixed;
-            inset: 0;
-            background: rgba(0,0,0,0.9);
-            backdrop-filter: blur(12px);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            z-index: 1000;
-        }
-
-        .modal-card {
-            background: #0e1422ee;
-            border: 2px solid cyan;
-            border-radius: 40px;
-            padding: 32px 24px;
-            text-align: center;
-            width: 300px;
-            box-shadow: 0 0 50px cyan;
-        }
-
-        .modal-card h2 {
-            color: cyan;
-            margin-bottom: 16px;
-        }
-
-        .error-msg {
-            color: #ff8888;
-            font-size: 0.8rem;
-            margin: 12px 0;
-            word-break: break-word;
-        }
-
-        .line-login-btn {
-            background: linear-gradient(135deg, #06c755, #029c3e);
-            border: none;
-            padding: 12px 24px;
-            border-radius: 60px;
-            font-weight: bold;
-            color: white;
-            font-size: 1rem;
-            display: inline-flex;
-            gap: 8px;
-            margin-top: 20px;
-            cursor: pointer;
-        }
-
-        .restart-btn {
-            background: cyan;
-            border: none;
-            padding: 10px 20px;
-            border-radius: 40px;
-            font-weight: bold;
-            margin-top: 16px;
-            cursor: pointer;
-        }
-
-        .hidden {
-            display: none;
-        }
-
-        button:active { transform: scale(0.96); }
-        .logout-text {
-            font-size: 0.7rem;
-            margin-top: 8px;
-            color: #aaa;
-            text-decoration: underline;
-            cursor: pointer;
-        }
-    </style>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Cyber Arrow 2.0 - 物理碰撞版</title>
+    <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        :root { --neon-blue: #00f2ff; --neon-pink: #ff00ff; --bg: #030305; }
+        body { margin: 0; background: var(--bg); color: white; font-family: 'Courier New', monospace; overflow: hidden; touch-action: none; display: flex; flex-direction: column; align-items: center; }
+        
+        #ui-layer { width: 100%; padding: 15px 25px; display: flex; justify-content: space-between; background: rgba(0,0,0,0.95); border-bottom: 1px solid var(--neon-blue); z-index: 50; box-sizing: border-box; }
+        .score-box { color: var(--neon-blue); font-weight: bold; font-size: 1.1rem; text-shadow: 0 0 8px var(--neon-blue); }
+        
+        #game-container { position: relative; width: 92vw; height: 78vh; margin-top: 15px; background: #000; border: 1px solid rgba(0,242,255,0.2); border-radius: 4px; overflow: hidden; }
+        
+        /* 極細箭頭樣式 */
+        .arrow { position: absolute; cursor: pointer; display: flex; align-items: center; justify-content: center; z-index: 5; }
+        .arrow-body { position: absolute; inset: 0; background: #000; border: 1.2px solid var(--color); box-shadow: 0 0 12px var(--color); border-radius: 1px; }
+        .arrow-head { width: 0; height: 0; border-style: solid; position: absolute; z-index: 10; filter: drop-shadow(0 0 3px var(--color)); }
+        
+        #login-screen { position: fixed; inset: 0; background: var(--bg); display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 100; }
+        .btn { background: transparent; color: var(--neon-pink); border: 1px solid var(--neon-pink); padding: 10px 20px; cursor: pointer; font-weight: bold; letter-spacing: 2px; box-shadow: 0 0 10px rgba(255,0,255,0.3); }
+    </style>
 </head>
 <body>
 
-<div class="game-wrapper">
-    <div class="game-area">
-        <div class="status-bar">
-            <div class="player-info" id="playerInfoBlock">
-                <div class="avatar" id="avatarImg" style="background-image: url('');"></div>
-                <span class="player-name" id="playerName">訪客</span>
-            </div>
-            <div class="score-panel">
-                <div class="score-label">🏹 目前積分</div>
-                <div class="score-value" id="currentScoreUI">0</div>
-            </div>
-            <div class="hearts" id="heartsUI">❤️ ❤️ ❤️</div>
-        </div>
-        <canvas id="gameCanvas" width="450" height="550" style="width:100%; height:auto; aspect-ratio:450/550"></canvas>
-    </div>
-
-    <div class="leaderboard">
-        <h3>🌍 全球排行榜 <span class="refresh-icon" id="refreshLeaderboard">⟳</span></h3>
-        <div id="rankList" class="rank-list">載入中...</div>
-    </div>
+<div id="login-screen">
+    <h1 style="color:var(--neon-blue); text-shadow: 0 0 15px var(--neon-blue); font-size: 1.5rem;">CORE DECRYPTION</h1>
+    <button class="btn" onclick="liff.login()">AUTHORIZE LOGIN</button>
 </div>
 
-<!-- 登入遮罩層 -->
-<div id="loginOverlay" class="login-overlay">
-    <div class="modal-card">
-        <h2>⚡ 箭客登入</h2>
-        <p>使用 LINE 帳號 進入賽博領域</p>
-        <div id="loginErrorMsg" class="error-msg"></div>
-        <button class="line-login-btn" id="lineLoginBtn">💬 LINE 一鍵登入</button>
-        <div class="logout-text" id="forceLogoutBtn" style="display:none;">清除記錄，重新登入</div>
-    </div>
+<div id="ui-layer">
+    <div class="score-box">CLEARED: <span id="score">0</span></div>
+    <button class="btn" style="font-size: 10px; border-color: var(--neon-blue); color: var(--neon-blue);" onclick="uploadCurrentScore()">SYNC</button>
 </div>
 
-<!-- 遊戲結束彈窗 -->
-<div id="gameoverOverlay" class="gameover-overlay hidden">
-    <div class="modal-card">
-        <h2>💀 GAME OVER 💀</h2>
-        <p>得分: <span id="finalScoreSpan">0</span></p>
-        <button class="restart-btn" id="gameRestartBtn">🔄 再來一局</button>
-    </div>
-</div>
+<div id="game-container"></div>
 
 <script>
-    // ======================== 設定區域 ========================
-    const SUPABASE_URL = "https://lqbqgycbyuxjodepxpfe.supabase.co";
-    const SUPABASE_ANON_KEY = "sb_publishable__ccuRo8VOesRE-llsSaRGw_yXvEIlkk";
-    const LINE_CHANNEL_ID = "2010069700";   // ⚠️ 請確認這是您的 LINE Channel ID (純數字)
-    // REDIRECT_URI 會自動使用目前的路徑 (最後需有斜杠，GitHub Pages 會自動處理)
-    const REDIRECT_URI = window.location.origin + window.location.pathname;
-    
-    // 遊戲常數
-    const ROWS = 8, COLS = 7;
-    const CELL_W = 450 / COLS;
-    const CELL_H = 550 / ROWS;
-    
-    let supabase;
-    let currentUser = null;       // { id, name, picture }
-    let gameActive = false;
-    let arrows = [];
-    let lives = 3;
-    let currentScore = 0;
-    let currentLevel = 1;
-    
-    // DOM
-    const canvas = document.getElementById('gameCanvas');
-    const ctx = canvas.getContext('2d');
-    const loginOverlay = document.getElementById('loginOverlay');
-    const gameoverOverlay = document.getElementById('gameoverOverlay');
-    const finalScoreSpan = document.getElementById('finalScoreSpan');
-    const heartsUI = document.getElementById('heartsUI');
-    const currentScoreUI = document.getElementById('currentScoreUI');
-    const rankListDiv = document.getElementById('rankList');
-    const playerNameSpan = document.getElementById('playerName');
-    const avatarDiv = document.getElementById('avatarImg');
-    const loginErrorMsg = document.getElementById('loginErrorMsg');
-    
-    // ========== 初始化 Supabase ==========
-    function initSupabase() {
-        supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-        console.log("Supabase 已初始化");
-    }
-    
-    // ========== 遊戲核心 ==========
-    function initLevel() {
-        let arrowCount = Math.min(5 + currentLevel, 28);
-        arrows = Array(ROWS).fill().map(() => Array(COLS).fill(null));
-        for (let i = 0; i < arrowCount; i++) {
-            let row, col;
-            do {
-                row = Math.floor(Math.random() * ROWS);
-                col = Math.floor(Math.random() * COLS);
-            } while (arrows[row][col] !== null);
-            const dir = Math.floor(Math.random() * 4);
-            arrows[row][col] = { dir };
+const CONFIG = {
+    LIFF_ID: "2010069700-ApwAjal4",
+    SB_URL: "https://lqbqgycbyuxjodepxpfe.supabase.co",
+    SB_KEY: "Sb_publishable__ccuRo8VOesRE-llsSaRGw_yXvEIlkk"
+};
+
+const DIRS = {
+    UP:    { dx: 0,  dy: -1, color: '#ff00ff' },
+    DOWN:  { dx: 0,  dy: 1,  color: '#00f2ff' },
+    LEFT:  { dx: -1, dy: 0,  color: '#ffffff' },
+    RIGHT: { dx: 1,  dy: 0,  color: '#ffff00' }
+};
+
+let supabaseClient;
+let currentScore = 0;
+let userProfile = null;
+let arrows = [];
+
+async function init() {
+    supabaseClient = supabase.createClient(CONFIG.SB_URL, CONFIG.SB_KEY);
+    try {
+        await liff.init({ liffId: CONFIG.LIFF_ID });
+        if (liff.isLoggedIn()) {
+            userProfile = await liff.getProfile();
+            document.getElementById('login-screen').style.display = 'none';
+            generateLevel();
         }
-        drawCanvas();
-    }
+    } catch (e) { console.error(e); }
+}
+
+function generateLevel() {
+    const container = document.getElementById('game-container');
+    container.innerHTML = '';
+    arrows = [];
     
-    function checkArrowCollision(row, col, dir) {
-        let dr = 0, dc = 0;
-        if (dir === 0) dr = -1;
-        else if (dir === 1) dc = 1;
-        else if (dir === 2) dr = 1;
-        else dc = -1;
-        let r = row + dr, c = col + dc;
-        while (r >= 0 && r < ROWS && c >= 0 && c < COLS) {
-            if (arrows[r][c] !== null) return { hit: true, row: r, col: c };
-            r += dr;
-            c += dc;
+    // 模擬圖片纖細長條數據 (寬度 12px)
+    const levelData = [
+        { id: 1, x: 20,  y: 120, w: 280, h: 12, dir: 'RIGHT' },
+        { id: 2, x: 240, y: 50,  w: 12,  h: 300, dir: 'UP' },
+        { id: 3, x: 80,  y: 30,  w: 12,  h: 400, dir: 'DOWN' },
+        { id: 4, x: 40,  y: 320, w: 260, h: 12, dir: 'LEFT' },
+        { id: 5, x: 150, y: 100, w: 12,  h: 200, dir: 'UP' },
+        { id: 6, x: 10,  y: 200, w: 320, h: 12, dir: 'RIGHT' },
+        { id: 7, x: 180, y: 20,  w: 12,  h: 350, dir: 'DOWN' }
+    ];
+
+    levelData.forEach(data => {
+        const div = document.createElement('div');
+        div.className = 'arrow';
+        div.style.left = data.x + 'px';
+        div.style.top = data.y + 'px';
+        div.style.width = data.w + 'px';
+        div.style.height = data.h + 'px';
+        div.style.setProperty('--color', DIRS[data.dir].color);
+        
+        const body = document.createElement('div');
+        body.className = 'arrow-body';
+        div.appendChild(body);
+
+        const head = document.createElement('div');
+        head.className = 'arrow-head';
+        const s = 4; // 極細三角形
+        const color = DIRS[data.dir].color;
+        if(data.dir === 'RIGHT') { head.style.borderWidth = `${s}px 0 ${s}px ${s+2}px`; head.style.borderColor = `transparent transparent transparent ${color}`; head.style.right = '-6px'; }
+        if(data.dir === 'LEFT')  { head.style.borderWidth = `${s}px ${s+2}px ${s}px 0`; head.style.borderColor = `transparent ${color} transparent transparent`; head.style.left = '-6px'; }
+        if(data.dir === 'UP')    { head.style.borderWidth = `0 ${s}px ${s+2}px ${s}px`; head.style.borderColor = `transparent transparent ${color} transparent`; head.style.top = '-6px'; }
+        if(data.dir === 'DOWN')  { head.style.borderWidth = `${s+2}px ${s}px 0 ${s}px`; head.style.borderColor = `${color} transparent transparent transparent`; head.style.bottom = '-6px'; }
+        div.appendChild(head);
+
+        div.onclick = () => startMove(data, div);
+        container.appendChild(div);
+        arrows.push({ ...data, element: div, active: true, moving: false });
+    });
+}
+
+function startMove(arrow, element) {
+    if (!arrow.active || arrow.moving) return;
+    arrow.moving = true;
+    
+    const speed = 8;
+    const dir = DIRS[arrow.dir];
+    
+    const moveFrame = () => {
+        if (!arrow.moving) return;
+
+        // 預測下一步位置
+        const nextX = arrow.x + dir.dx * speed;
+        const nextY = arrow.y + dir.dy * speed;
+        
+        // 碰撞檢查
+        let blocker = null;
+        arrows.forEach(other => {
+            if (!other.active || other.id === arrow.id) return;
+            // 碰撞邊界判定
+            const a = { l: nextX, r: nextX + arrow.w, t: nextY, b: nextY + arrow.h };
+            const o = { l: other.x, r: other.x + other.w, t: other.y, b: other.y + other.h };
+            
+            const isOverlap = !(a.r <= o.l || a.l >= o.r || a.b <= o.t || a.t >= o.b);
+            if (isOverlap) blocker = other;
+        });
+
+        if (blocker) {
+            // 彈跳特效 (彈回 15px)
+            arrow.moving = false;
+            element.style.transition = 'transform 0.1s ease-out';
+            element.style.transform = `translate(${dir.dx * 15}px, ${dir.dy * 15}px)`;
+            setTimeout(() => {
+                element.style.transform = 'translate(0,0)';
+                setTimeout(() => { 
+                    element.style.transition = ''; 
+                    arrow.moving = false; 
+                }, 100);
+            }, 100);
+            return;
         }
-        return { hit: false };
-    }
-    
-    function tryEliminate(row, col) {
-        if (!gameActive) return false;
-        const arrow = arrows[row][col];
-        if (!arrow) return false;
-        const collision = checkArrowCollision(row, col, arrow.dir);
-        if (collision.hit) {
-            lives--;
-            updateHeartsUI();
-            if (lives <= 0) {
-                gameActive = false;
-                gameOver();
-            } else {
-                canvas.style.filter = 'drop-shadow(0 0 6px red)';
-                setTimeout(() => canvas.style.filter = '', 150);
-            }
-            return false;
-        } else {
-            arrows[row][col] = null;
-            currentScore += 10;
-            currentScoreUI.innerText = currentScore;
-            drawCanvas();
-            let remaining = arrows.flat().filter(a => a !== null).length;
-            if (remaining === 0) {
-                currentLevel++;
-                lives = Math.min(lives + 1, 5);
-                updateHeartsUI();
-                initLevel();
-            }
-            return true;
+
+        // 更新實際座標
+        arrow.x = nextX;
+        arrow.y = nextY;
+        element.style.left = arrow.x + 'px';
+        element.style.top = arrow.y + 'px';
+
+        // 離開螢幕邊界判定
+        const out = arrow.x < -400 || arrow.x > 800 || arrow.y < -400 || arrow.y > 1000;
+        if (out) {
+            arrow.active = false;
+            arrow.moving = false;
+            currentScore++;
+            document.getElementById('score').innerText = currentScore;
+            if(arrows.every(a => !a.active)) setTimeout(generateLevel, 600);
+            return;
         }
-    }
-    
-    function updateHeartsUI() {
-        let str = '';
-        for (let i=0; i<lives; i++) str += '❤️ ';
-        heartsUI.innerText = str.trim() || '💀';
-    }
-    
-    async function gameOver() {
-        if (!gameActive) return;
-        gameActive = false;
-        finalScoreSpan.innerText = currentScore;
-        gameoverOverlay.classList.remove('hidden');
-        if (currentUser && currentScore > 0) {
-            await submitScore(currentUser.id, currentScore);
-        }
-        await loadLeaderboard();
-    }
-    
-    async function submitScore(userId, score) {
-        if (!supabase) return;
-        try {
-            await supabase.from('players').upsert({ 
-                user_id: userId, 
-                display_name: currentUser.name,
-                picture_url: currentUser.picture 
-            });
-            await supabase.from('scores').insert({ user_id: userId, score: score });
-        } catch(e) { console.warn("分數提交失敗", e); }
-    }
-    
-    async function loadLeaderboard() {
-        if (!supabase) { rankListDiv.innerHTML = '資料庫未連線'; return; }
-        const { data, error } = await supabase
-            .from('scores')
-            .select(`score, players (display_name, picture_url, user_id)`)
-            .order('score', { ascending: false })
-            .limit(30);
-        if (error) { rankListDiv.innerHTML = '排行榜讀取失敗'; console.error(error); return; }
-        const bestMap = new Map();
-        for (let item of data) {
-            const p = item.players;
-            if (!p) continue;
-            const uid = p.user_id;
-            if (!bestMap.has(uid) || bestMap.get(uid).score < item.score) {
-                bestMap.set(uid, { name: p.display_name, picture: p.picture_url, score: item.score });
-            }
-        }
-        const top = Array.from(bestMap.values()).sort((a,b)=>b.score - a.score).slice(0,10);
-        if (top.length === 0) { rankListDiv.innerHTML = '暫無排行資料'; return; }
-        rankListDiv.innerHTML = top.map(u => `
-            <div class="rank-item">
-                <div class="rank-avatar" style="background-image: url('${u.picture || ''}'); background-size:cover; background-position:center;"></div>
-                <span class="rank-name">${escapeHtml(u.name || '匿名箭客')}</span>
-                <span class="rank-score">${u.score}</span>
-            </div>
-        `).join('');
-    }
-    
-    function escapeHtml(s) { return s?.replace(/[&<>]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;'})[c]) || '?'; }
-    
-    function drawCanvas() {
-        ctx.clearRect(0, 0, 450, 550);
-        ctx.strokeStyle = '#0ff3';
-        ctx.lineWidth = 1;
-        for (let i=0; i<=COLS; i++) {
-            ctx.beginPath();
-            ctx.moveTo(i*CELL_W, 0);
-            ctx.lineTo(i*CELL_W, 550);
-            ctx.stroke();
-            ctx.beginPath();
-            ctx.moveTo(0, i*CELL_H);
-            ctx.lineTo(450, i*CELL_H);
-            ctx.stroke();
-        }
-        for (let r=0; r<ROWS; r++) {
-            for (let c=0; c<COLS; c++) {
-                const a = arrows[r][c];
-                if (!a) continue;
-                const x = c*CELL_W + CELL_W/2;
-                const y = r*CELL_H + CELL_H/2;
-                const size = Math.min(CELL_W, CELL_H)*0.55;
-                ctx.save();
-                ctx.font = `${size}px "Segoe UI", monospace`;
-                ctx.textAlign = 'center';
-                ctx.textBaseline = 'middle';
-                ctx.fillStyle = '#1effbc';
-                ctx.shadowBlur = 8;
-                ctx.shadowColor = '#0ff';
-                let char = '↑';
-                if (a.dir === 0) char = '↑';
-                else if (a.dir === 1) char = '→';
-                else if (a.dir === 2) char = '↓';
-                else char = '←';
-                ctx.fillText(char, x, y);
-                ctx.restore();
-            }
-        }
-    }
-    
-    function handleCanvasTap(e) {
-        if (!gameActive) return;
-        const rect = canvas.getBoundingClientRect();
-        const scaleX = canvas.width / rect.width;
-        const scaleY = canvas.height / rect.height;
-        let cx, cy;
-        if (e.touches) {
-            cx = e.touches[0].clientX;
-            cy = e.touches[0].clientY;
-            e.preventDefault();
-        } else {
-            cx = e.clientX;
-            cy = e.clientY;
-        }
-        let canvasX = (cx - rect.left) * scaleX;
-        let canvasY = (cy - rect.top) * scaleY;
-        if (canvasX<0 || canvasX>canvas.width || canvasY<0 || canvasY>canvas.height) return;
-        const col = Math.floor(canvasX / CELL_W);
-        const row = Math.floor(canvasY / CELL_H);
-        if (row>=0 && row<ROWS && col>=0 && col<COLS && arrows[row][col]) {
-            tryEliminate(row, col);
-            drawCanvas();
-        }
-    }
-    
-    // ========== LINE Login PKCE (增強錯誤處理) ==========
-    async function startLineLogin() {
-        const state = Math.random().toString(36).substring(7);
-        localStorage.setItem('line_oauth_state', state);
-        const codeVerifier = generateRandomString(64);
-        localStorage.setItem('code_verifier', codeVerifier);
-        const codeChallenge = await pkceChallenge(codeVerifier);
-        const authUrl = `https://access.line.me/oauth2/v2.1/authorize?response_type=code&client_id=${LINE_CHANNEL_ID}&redirect_uri=${encodeURIComponent(REDIRECT_URI)}&state=${state}&scope=profile%20openid&code_challenge=${codeChallenge}&code_challenge_method=S256`;
-        console.log("跳轉至 LINE 授權頁面");
-        window.location.href = authUrl;
-    }
-    
-    function generateRandomString(length) {
-        const possible = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-._~';
-        let text = '';
-        for(let i=0; i<length; i++) text += possible.charAt(Math.floor(Math.random() * possible.length));
-        return text;
-    }
-    
-    async function pkceChallenge(verifier) {
-        const encoder = new TextEncoder();
-        const data = encoder.encode(verifier);
-        const digest = await crypto.subtle.digest('SHA-256', data);
-        return btoa(String.fromCharCode(...new Uint8Array(digest))).replace(/=/g, '').replace(/\+/g, '-').replace(/\//g, '_');
-    }
-    
-    async function handleLineRedirect() {
-        const params = new URLSearchParams(window.location.search);
-        const code = params.get('code');
-        const state = params.get('state');
-        const errorParam = params.get('error');
-        if (errorParam) {
-            loginErrorMsg.innerText = `LINE 授權錯誤: ${errorParam}`;
-            return null;
-        }
-        if (!code || !state) return null;
-        const storedState = localStorage.getItem('line_oauth_state');
-        if (state !== storedState) {
-            loginErrorMsg.innerText = "狀態驗證失敗，請重新嘗試";
-            return null;
-        }
-        localStorage.removeItem('line_oauth_state');
-        const codeVerifier = localStorage.getItem('code_verifier');
-        localStorage.removeItem('code_verifier');
-        if (!codeVerifier) {
-            loginErrorMsg.innerText = "缺少 PKCE 驗證碼，請重新登入";
-            return null;
-        }
-        try {
-            const tokenUrl = 'https://api.line.me/oauth2/v2.1/token';
-            const body = new URLSearchParams();
-            body.append('grant_type', 'authorization_code');
-            body.append('code', code);
-            body.append('redirect_uri', REDIRECT_URI);
-            body.append('client_id', LINE_CHANNEL_ID);
-            body.append('code_verifier', codeVerifier);
-            const tokenRes = await fetch(tokenUrl, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-                body: body
-            });
-            const tokenData = await tokenRes.json();
-            if (!tokenData.access_token) {
-                loginErrorMsg.innerText = `獲取 Access Token 失敗: ${JSON.stringify(tokenData)}`;
-                return null;
-            }
-            const profileRes = await fetch('https://api.line.me/v2/profile', {
-                headers: { 'Authorization': `Bearer ${tokenData.access_token}` }
-            });
-            const profile = await profileRes.json();
-            if (!profile.userId) {
-                loginErrorMsg.innerText = "無法獲取使用者資料";
-                return null;
-            }
-            return {
-                userId: profile.userId,
-                displayName: profile.displayName,
-                pictureUrl: profile.pictureUrl || ''
-            };
-        } catch (err) {
-            loginErrorMsg.innerText = `連線錯誤: ${err.message}`;
-            console.error(err);
-            return null;
-        }
-    }
-    
-    async function initLoginAndGame() {
-        initSupabase();
-        // 先嘗試處理回傳的 code
-        const profile = await handleLineRedirect();
-        if (profile) {
-            currentUser = {
-                id: profile.userId,
-                name: profile.displayName,
-                picture: profile.pictureUrl
-            };
-            avatarDiv.style.backgroundImage = `url('${currentUser.picture}')`;
-            playerNameSpan.innerText = currentUser.name;
-            loginOverlay.style.display = 'none';
-            // 清除 URL 中的 code 參數 (避免刷新重複處理)
-            const url = new URL(window.location.href);
-            url.searchParams.delete('code');
-            url.searchParams.delete('state');
-            window.history.replaceState({}, '', url.toString());
-            // 啟動遊戲
-            resetGame();
-            await loadLeaderboard();
-            return true;
-        } else {
-            // 沒有 code 或處理失敗，顯示登入畫面
-            loginOverlay.style.display = 'flex';
-            // 如果已經有 currentUser (例如之前登入過但遮罩意外出現)，可以強制隱藏遮罩
-            if (currentUser) {
-                loginOverlay.style.display = 'none';
-                resetGame();
-                return true;
-            }
-            return false;
-        }
-    }
-    
-    function resetGame() {
-        gameActive = true;
-        lives = 3;
-        currentScore = 0;
-        currentLevel = 1;
-        currentScoreUI.innerText = '0';
-        updateHeartsUI();
-        initLevel();
-        drawCanvas();
-        gameoverOverlay.classList.add('hidden');
-    }
-    
-    function restartAfterGameOver() {
-        if (!currentUser) return;
-        resetGame();
-    }
-    
-    function forceLogout() {
-        localStorage.removeItem('line_oauth_state');
-        localStorage.removeItem('code_verifier');
-        currentUser = null;
-        loginOverlay.style.display = 'flex';
-        gameActive = false;
-    }
-    
-    // 事件綁定
-    window.onload = async () => {
-        canvas.addEventListener('click', handleCanvasTap);
-        canvas.addEventListener('touchstart', (e) => { e.preventDefault(); handleCanvasTap(e); });
-        document.getElementById('lineLoginBtn').onclick = () => startLineLogin();
-        document.getElementById('gameRestartBtn').onclick = () => restartAfterGameOver();
-        document.getElementById('refreshLeaderboard').onclick = () => loadLeaderboard();
-        const forceBtn = document.getElementById('forceLogoutBtn');
-        if (forceBtn) forceBtn.onclick = () => forceLogout();
-        await initLoginAndGame();
+
+        requestAnimationFrame(moveFrame);
     };
+    
+    requestAnimationFrame(moveFrame);
+}
+
+async function uploadCurrentScore() {
+    if(!userProfile) return;
+    await supabaseClient.from('leaderboard').upsert({
+        line_id: userProfile.userId, username: userProfile.displayName,
+        picture_url: userProfile.pictureUrl, score: currentScore
+    }, { onConflict: 'line_id' });
+    alert("MEMORY SYNCED");
+}
+
+window.onload = init;
 </script>
 </body>
 </html>
