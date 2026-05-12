@@ -3,37 +3,45 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>一箭又一箭 - 2D 謎題版</title>
+    <title>Cyber Arrow 2D - 賽博解謎</title>
     <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
-        body { margin: 0; background: #f0f4f8; font-family: sans-serif; overflow: hidden; touch-action: none; display: flex; flex-direction: column; align-items: center; }
-        #ui-layer { width: 100%; padding: 15px; display: flex; justify-content: space-between; box-sizing: border-box; background: white; z-index: 10; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
-        .score-box { color: #333; font-weight: bold; font-size: 18px; }
-        #game-container { position: relative; width: 360px; height: 500px; margin-top: 20px; background: #fff; border: 4px solid #333; border-radius: 8px; overflow: hidden; }
-        .arrow { position: absolute; border: 2px solid #000; border-radius: 4px; cursor: pointer; transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1); display: flex; align-items: center; justify-content: center; }
-        .arrow-head { width: 0; height: 0; border-style: solid; position: absolute; }
+        :root { --neon-blue: #00f2ff; --neon-pink: #ff00ff; --grid-bg: #0a0a0c; }
+        body { margin: 0; background: var(--grid-bg); color: white; font-family: 'Segoe UI', sans-serif; overflow: hidden; touch-action: none; display: flex; flex-direction: column; align-items: center; }
         
-        /* 登入蓋板 */
-        #login-screen { position: fixed; inset: 0; background: #fff; display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 100; }
-        .btn { background: #4a90e2; color: white; border: none; padding: 12px 24px; border-radius: 25px; font-size: 16px; font-weight: bold; cursor: pointer; }
+        /* UI 層 - 賽博風格 */
+        #ui-layer { width: 100%; padding: 15px 25px; display: flex; justify-content: space-between; box-sizing: border-box; background: rgba(0,0,0,0.8); border-bottom: 1px solid var(--neon-blue); z-index: 10; }
+        .score-box { color: var(--neon-blue); font-weight: bold; font-size: 20px; text-shadow: 0 0 10px var(--neon-blue); }
+        
+        /* 遊戲容器 */
+        #game-container { position: relative; width: 90vw; height: 70vh; margin-top: 20px; background: #111; border: 2px solid var(--neon-blue); box-shadow: 0 0 20px rgba(0,242,255,0.2); border-radius: 4px; overflow: hidden; }
+        
+        /* 箭頭樣式 - 變細且具發光感 */
+        .arrow { position: absolute; cursor: pointer; transition: transform 0.4s cubic-bezier(0.22, 1, 0.36, 1); display: flex; align-items: center; justify-content: center; box-sizing: border-box; }
+        .arrow-body { position: absolute; background: rgba(0,0,0,0.8); border: 1.5px solid var(--color); box-shadow: 0 0 8px var(--color); border-radius: 2px; width: 100%; height: 100%; }
+        .arrow-head { width: 0; height: 0; border-style: solid; position: absolute; z-index: 2; }
+        
+        /* 登入畫面 */
+        #login-screen { position: fixed; inset: 0; background: var(--grid-bg); display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 100; }
+        .btn { background: none; color: var(--neon-pink); border: 2px solid var(--neon-pink); padding: 12px 30px; font-size: 18px; font-weight: bold; cursor: pointer; box-shadow: 0 0 10px var(--neon-pink); text-transform: uppercase; letter-spacing: 2px; }
+        .btn:active { background: var(--neon-pink); color: white; }
     </style>
 </head>
 <body>
 
 <div id="login-screen">
-    <h1 style="color:#333; margin-bottom: 5px;">一箭又一箭</h1>
-    <p style="color:#888; margin-bottom: 30px;">解開所有重疊的箭頭吧！</p>
-    <button class="btn" onclick="liff.login()">開始挑戰</button>
+    <h1 style="color:var(--neon-blue); text-shadow: 0 0 20px var(--neon-blue); letter-spacing: 5px;">CYBER ARROW</h1>
+    <button class="btn" onclick="liff.login()">Initialize Link</button>
 </div>
 
 <div id="ui-layer">
-    <div class="score-box">已解開: <span id="score">0</span></div>
-    <button class="btn" style="padding:5px 15px; font-size: 12px;" onclick="uploadCurrentScore()">同步排行</button>
+    <div class="score-box">DECRYPTED: <span id="score">0</span></div>
+    <button class="btn" style="padding:5px 15px; font-size: 12px;" onclick="uploadCurrentScore()">Sync Data</button>
 </div>
 
-<div id="game-container" id="board">
-    <!-- 箭頭會經由 JS 生成 -->
+<div id="game-container">
+    <!-- 箭頭由 JS 渲染 -->
 </div>
 
 <script>
@@ -46,12 +54,11 @@ let currentScore = 0;
 let userProfile = null;
 let arrows = [];
 
-// 箭頭方向配置
 const DIRS = {
-    UP: { x: 0, y: -1, color: '#FF5A5F' },
-    DOWN: { x: 0, y: 1, color: '#00A699' },
-    LEFT: { x: -1, y: 0, color: '#FC642D' },
-    RIGHT: { x: 1, y: 0, color: '#484848' }
+    UP:    { x: 0,  y: -1, color: '#ff00ff' }, // 霓虹粉
+    DOWN:  { x: 0,  y: 1,  color: '#00f2ff' }, // 霓虹藍
+    LEFT:  { x: -1, y: 0,  color: '#fff'    }, // 白色
+    RIGHT: { x: 1,  y: 0,  color: '#ffff00' }  // 黃色
 };
 
 async function initGame() {
@@ -68,15 +75,16 @@ function generateLevel() {
     container.innerHTML = '';
     arrows = [];
     
-    // 建立一個簡單的測試關卡（模擬圖片中的交錯感）
-    // 格式: { x, y, w, h, dir }
+    // 模擬圖片中纖細且交錯的佈局
+    // 寬度調細 (25px)，長度加長
     const levelData = [
-        { id: 1, x: 50, y: 100, w: 200, h: 40, dir: 'RIGHT' },
-        { id: 2, x: 210, y: 50, w: 40, h: 150, dir: 'UP' },
-        { id: 3, x: 40, y: 150, w: 40, h: 200, dir: 'DOWN' },
-        { id: 4, x: 20, y: 280, w: 300, h: 40, dir: 'LEFT' },
-        { id: 5, x: 100, y: 200, w: 150, h: 40, dir: 'RIGHT' },
-        { id: 6, x: 150, y: 80, w: 40, h: 300, dir: 'DOWN' }
+        { id: 1, x: 20,  y: 150, w: 250, h: 22, dir: 'RIGHT' },
+        { id: 2, x: 220, y: 30,  w: 22,  h: 280, dir: 'UP' },
+        { id: 3, x: 60,  y: 20,  w: 22,  h: 350, dir: 'DOWN' },
+        { id: 4, x: 40,  y: 300, w: 280, h: 22, dir: 'LEFT' },
+        { id: 5, x: 120, y: 100, w: 22,  h: 180, dir: 'UP' },
+        { id: 6, x: 80,  y: 180, w: 200, h: 22, dir: 'RIGHT' },
+        { id: 7, x: 10,  y: 50,  w: 300, h: 22, dir: 'LEFT' }
     ];
 
     levelData.forEach(data => {
@@ -86,12 +94,15 @@ function generateLevel() {
         div.style.top = data.y + 'px';
         div.style.width = data.w + 'px';
         div.style.height = data.h + 'px';
-        div.style.backgroundColor = DIRS[data.dir].color;
+        div.style.setProperty('--color', DIRS[data.dir].color);
         
-        // 加入箭頭小三角形
+        const body = document.createElement('div');
+        body.className = 'arrow-body';
+        div.appendChild(body);
+
         const head = document.createElement('div');
         head.className = 'arrow-head';
-        applyArrowHeadStyle(head, data.dir);
+        applyArrowHeadStyle(head, data.dir, DIRS[data.dir].color);
         div.appendChild(head);
 
         div.onclick = () => tryMove(data, div);
@@ -100,45 +111,44 @@ function generateLevel() {
     });
 }
 
-function applyArrowHeadStyle(head, dir) {
-    const size = 10;
-    if (dir === 'RIGHT') { head.style.borderWidth = `${size}px 0 ${size}px ${size}px`; head.style.borderColor = `transparent transparent transparent white`; head.style.right = '5px'; }
-    if (dir === 'LEFT') { head.style.borderWidth = `${size}px ${size}px ${size}px 0`; head.style.borderColor = `transparent white transparent transparent`; head.style.left = '5px'; }
-    if (dir === 'UP') { head.style.borderWidth = `0 ${size}px ${size}px ${size}px`; head.style.borderColor = `transparent transparent white transparent`; head.style.top = '5px'; }
-    if (dir === 'DOWN') { head.style.borderWidth = `${size}px ${size}px 0 ${size}px`; head.style.borderColor = `white transparent transparent transparent`; head.style.bottom = '5px'; }
+function applyArrowHeadStyle(head, dir, color) {
+    const s = 6; // 箭頭大小
+    if (dir === 'RIGHT') { head.style.borderWidth = `${s}px 0 ${s}px ${s+2}px`; head.style.borderColor = `transparent transparent transparent ${color}`; head.style.right = '-8px'; }
+    if (dir === 'LEFT')  { head.style.borderWidth = `${s}px ${s+2}px ${s}px 0`; head.style.borderColor = `transparent ${color} transparent transparent`; head.style.left = '-8px'; }
+    if (dir === 'UP')    { head.style.borderWidth = `0 ${s}px ${s+2}px ${s}px`; head.style.borderColor = `transparent transparent ${color} transparent`; head.style.top = '-8px'; }
+    if (dir === 'DOWN')  { head.style.borderWidth = `${s+2}px ${s}px 0 ${s}px`; head.style.borderColor = `${color} transparent transparent transparent`; head.style.bottom = '-8px'; }
 }
 
 function tryMove(arrow, element) {
     if (!arrow.active) return;
-
     const dir = DIRS[arrow.dir];
     let blocked = false;
 
-    // 簡單的 2D 碰撞檢查
+    // 檢查碰撞邏輯
     arrows.forEach(other => {
         if (!other.active || other.id === arrow.id) return;
+        const margin = 2; 
+        const a = { l: arrow.x, r: arrow.x + arrow.w, t: arrow.y, b: arrow.y + arrow.h };
+        const o = { l: other.x, r: other.x + other.w, t: other.y, b: other.y + other.h };
 
-        // 判斷移動路徑上是否有其他方塊
-        if (arrow.dir === 'RIGHT' && other.x > arrow.x && !(other.y + other.h <= arrow.y || other.y >= arrow.y + arrow.h)) blocked = true;
-        if (arrow.dir === 'LEFT' && other.x < arrow.x && !(other.y + other.h <= arrow.y || other.y >= arrow.y + arrow.h)) blocked = true;
-        if (arrow.dir === 'UP' && other.y < arrow.y && !(other.x + other.w <= arrow.x || other.x >= arrow.x + arrow.w)) blocked = true;
-        if (arrow.dir === 'DOWN' && other.y > arrow.y && !(other.x + other.w <= arrow.x || other.x >= arrow.x + arrow.w)) blocked = true;
+        if (arrow.dir === 'RIGHT' && o.l >= a.r && !(o.b <= a.t || o.t >= a.b)) blocked = true;
+        if (arrow.dir === 'LEFT'  && o.r <= a.l && !(o.b <= a.t || o.t >= a.b)) blocked = true;
+        if (arrow.dir === 'UP'    && o.b <= a.t && !(o.r <= a.l || o.l >= a.r)) blocked = true;
+        if (arrow.dir === 'DOWN'  && o.y >= a.b && !(o.r <= a.l || o.l >= a.r)) blocked = true;
     });
 
     if (blocked) {
-        // 抖動特效
-        element.style.transform = `translate(${dir.x * 10}px, ${dir.y * 10}px)`;
-        setTimeout(() => { element.style.transform = 'translate(0,0)'; }, 100);
+        element.style.transform = `translate(${dir.x * 12}px, ${dir.y * 12}px)`;
+        setTimeout(() => { element.style.transform = 'translate(0,0)'; }, 80);
     } else {
-        // 飛出螢幕
         arrow.active = false;
-        element.style.transform = `translate(${dir.x * 600}px, ${dir.y * 600}px)`;
+        // 點了就往前衝！
+        element.style.transform = `translate(${dir.x * 800}px, ${dir.y * 800}px)`;
         currentScore++;
         document.getElementById('score').innerText = currentScore;
         
-        // 檢查是否全破
         if(arrows.every(a => !a.active)) {
-            setTimeout(() => { alert("恭喜通關！"); generateLevel(); }, 500);
+            setTimeout(() => { alert("SYSTEM CLEARED"); generateLevel(); }, 400);
         }
     }
 }
@@ -149,7 +159,7 @@ async function uploadCurrentScore() {
         line_id: userProfile.userId, username: userProfile.displayName,
         picture_url: userProfile.pictureUrl, score: currentScore
     }, { onConflict: 'line_id' });
-    if(!error) alert("分數已同步！");
+    if(!error) alert("DATA SYNCED");
 }
 
 initGame();
