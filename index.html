@@ -2,47 +2,119 @@
 <html lang="zh-Hant">
 <head>
     <meta charset="UTF-8">
-    <title>Cyber Arrow - 賽博箭頭</title>
-    <script charset="utf-8" src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cyber Arrow 賽博箭頭</title>
+    <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <style>
-        body { 
-            background: #050505; color: #00f2ff; 
-            font-family: 'Orbitron', sans-serif; /* 建議找個科技感字體 */
-            margin: 0; overflow: hidden;
-        }
-        /* 賽博朋克霓虹按鈕 */
-        .neon-btn {
-            border: 2px solid #ff00ff;
-            background: transparent;
-            color: #ff00ff;
-            box-shadow: 0 0 10px #ff00ff;
-            text-shadow: 0 0 5px #ff00ff;
-            padding: 10px 20px;
-            cursor: pointer;
-        }
-        /* 遊戲畫布 */
-        #game-container { width: 100vw; height: 80vh; }
+        :root { --neon-blue: #00f2ff; --neon-pink: #ff00ff; }
+        body { margin: 0; background: #050505; color: white; font-family: 'Segoe UI', sans-serif; overflow: hidden; }
+        #ui-layer { position: absolute; top: 0; width: 100%; height: 100%; pointer-events: none; z-index: 10; }
+        .hud { padding: 20px; display: flex; justify-content: space-between; pointer-events: auto; }
+        .score-box { border: 2px solid var(--neon-blue); padding: 10px 20px; box-shadow: 0 0 15px var(--neon-blue); background: rgba(0,0,0,0.5); font-weight: bold; letter-spacing: 2px; }
+        #login-screen { position: fixed; inset: 0; background: rgba(5,5,5,0.95); display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 100; }
+        .btn { background: var(--neon-pink); color: white; border: none; padding: 15px 30px; cursor: pointer; box-shadow: 0 0 15px var(--neon-pink); font-weight: bold; transition: 0.3s; pointer-events: auto; }
+        .btn:hover { transform: scale(1.05); filter: brightness(1.2); }
+        #leaderboard { position: absolute; right: 20px; top: 100px; background: rgba(0,0,0,0.7); border: 1px solid var(--neon-blue); padding: 15px; font-size: 14px; pointer-events: auto; min-width: 150px; }
+        .rank-item { margin: 8px 0; border-bottom: 1px solid rgba(0,242,255,0.2); padding-bottom: 4px; }
     </style>
 </head>
 <body>
-    <div id="login-ui">
-        <button class="neon-btn" onclick="liffLogin()">進入賽博空間 (LINE 登入)</button>
-    </div>
-    
-    <div id="game-ui" style="display:none;">
-        <div class="score">Score: <span id="scoreVal">0</span></div>
-        <div id="game-container"></div> </div>
 
-    <script>
-        // 初始化 LIFF
-        async function initLiff() {
-            await liff.init({ liffId: "你的_LIFF_ID" });
-            if (liff.isLoggedIn()) {
-                showGame();
-            }
+<div id="login-screen">
+    <h1 style="color:var(--neon-blue); text-shadow: 0 0 20px var(--neon-blue); letter-spacing: 10px;">CYBER ARROW</h1>
+    <p style="color:rgba(255,255,255,0.6); margin-bottom: 30px;">進入賽博空間以同步排行</p>
+    <button class="btn" onclick="liff.login()">LINE 登入</button>
+</div>
+
+<div id="ui-layer">
+    <div class="hud">
+        <div class="score-box">SCORE: <span id="score">0</span></div>
+        <button class="btn" style="padding:8px 15px; font-size: 12px;" onclick="uploadCurrentScore()">上傳最高分</button>
+    </div>
+    <div id="leaderboard">
+        <div style="color:var(--neon-pink); font-weight: bold; margin-bottom:10px; border-bottom: 2px solid var(--neon-pink);">GLOBAL TOP 5</div>
+        <div id="rank-list">讀取中...</div>
+    </div>
+</div>
+
+<script>
+// --- 核心配置 (已根據你的資訊填寫) ---
+const LIFF_ID = "2010069700-ApwAjal4"; 
+const SB_URL = "https://lqbqgycbyuxjodepxpfe.supabase.co"; 
+const SB_KEY = "Sb_publishable__ccuRo8VOesRE-llsSaRGw_yXvEIlkk"; 
+
+const supabaseClient = supabase.createClient(SB_URL, SB_KEY);
+let currentScore = 0;
+let userProfile = null;
+
+async function initGame() {
+    try {
+        await liff.init({ liffId: LIFF_ID });
+        if (liff.isLoggedIn()) {
+            userProfile = await liff.getProfile();
+            document.getElementById('login-screen').style.display = 'none';
+            loadLeaderboard();
+            createGameScene();
         }
-        function liffLogin() { liff.login(); }
-        initLiff();
-    </script>
+    } catch (err) { console.error(err); }
+}
+
+async function uploadCurrentScore() {
+    if(!userProfile) return;
+    const { error } = await supabaseClient.from('leaderboard').upsert({
+        line_id: userProfile.userId,
+        username: userProfile.displayName,
+        picture_url: userProfile.pictureUrl,
+        score: currentScore
+    }, { onConflict: 'line_id' });
+    if(!error) { alert("分數已同步！"); loadLeaderboard(); }
+}
+
+async function loadLeaderboard() {
+    const { data } = await supabaseClient.from('leaderboard').select('username, score').order('score', {ascending: false}).limit(5);
+    const list = document.getElementById('rank-list');
+    if (data) { list.innerHTML = data.map((item, index) => `<div class="rank-item">${index + 1}. ${item.username} - ${item.score}</div>`).join(''); }
+}
+
+function createGameScene() {
+    const scene = new THREE.Scene();
+    const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+    const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    document.body.appendChild(renderer.domElement);
+
+    const light = new THREE.PointLight(0x00f2ff, 2, 100);
+    light.position.set(5, 5, 5);
+    scene.add(light, new THREE.AmbientLight(0x404040));
+    camera.position.z = 5;
+
+    const geometry = new THREE.BoxGeometry(1.2, 1.2, 1.2);
+    const cube = new THREE.Mesh(geometry, new THREE.MeshPhongMaterial({ color: 0x000000, emissive: 0x00f2ff, emissiveIntensity: 0.5 }));
+    cube.add(new THREE.LineSegments(new THREE.EdgesGeometry(geometry), new THREE.LineBasicMaterial({ color: 0xff00ff })));
+    scene.add(cube);
+
+    const raycaster = new THREE.Raycaster();
+    const mouse = new THREE.Vector2();
+
+    window.addEventListener('click', (e) => {
+        mouse.x = (e.clientX / window.innerWidth) * 2 - 1;
+        mouse.y = -(e.clientY / window.innerHeight) * 2 + 1;
+        raycaster.setFromCamera(mouse, camera);
+        if (raycaster.intersectObject(cube).length > 0) {
+            currentScore += 10;
+            document.getElementById('score').innerText = currentScore;
+            cube.position.x += 15;
+            setTimeout(() => { cube.position.x = (Math.random() - 0.5) * 4; cube.position.y = (Math.random() - 0.5) * 3; }, 400);
+        }
+    });
+
+    function animate() { requestAnimationFrame(animate); cube.rotation.x += 0.01; cube.rotation.y += 0.01; renderer.render(scene, camera); }
+    animate();
+}
+
+initGame();
+</script>
 </body>
 </html>
