@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <title>Cyber Arrow - 賽博箭頭</title>
+    <script charset="utf-8" src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
+    <style>
+        body { 
+            background: #050505; color: #00f2ff; 
+            font-family: 'Orbitron', sans-serif; /* 建議找個科技感字體 */
+            margin: 0; overflow: hidden;
+        }
+        /* 賽博朋克霓虹按鈕 */
+        .neon-btn {
+            border: 2px solid #ff00ff;
+            background: transparent;
+            color: #ff00ff;
+            box-shadow: 0 0 10px #ff00ff;
+            text-shadow: 0 0 5px #ff00ff;
+            padding: 10px 20px;
+            cursor: pointer;
+        }
+        /* 遊戲畫布 */
+        #game-container { width: 100vw; height: 80vh; }
+    </style>
+</head>
+<body>
+    <div id="login-ui">
+        <button class="neon-btn" onclick="liffLogin()">進入賽博空間 (LINE 登入)</button>
+    </div>
+    
+    <div id="game-ui" style="display:none;">
+        <div class="score">Score: <span id="scoreVal">0</span></div>
+        <div id="game-container"></div> </div>
+
+    <script>
+        // 初始化 LIFF
+        async function initLiff() {
+            await liff.init({ liffId: "你的_LIFF_ID" });
+            if (liff.isLoggedIn()) {
+                showGame();
+            }
+        }
+        function liffLogin() { liff.login(); }
+        initLiff();
+    </script>
+</body>
+</html>
