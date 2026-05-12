@@ -2,116 +2,154 @@
 <html lang="zh-Hant">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Cyber Arrow 賽博箭頭</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>一箭又一箭 - 2D 謎題版</title>
     <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <style>
-        :root { --neon-blue: #00f2ff; --neon-pink: #ff00ff; }
-        body { margin: 0; background: #050505; color: white; font-family: 'Segoe UI', sans-serif; overflow: hidden; }
-        #ui-layer { position: absolute; top: 0; width: 100%; height: 100%; pointer-events: none; z-index: 10; }
-        .hud { padding: 20px; display: flex; justify-content: space-between; pointer-events: auto; }
-        .score-box { border: 2px solid var(--neon-blue); padding: 10px 20px; box-shadow: 0 0 15px var(--neon-blue); background: rgba(0,0,0,0.5); font-weight: bold; letter-spacing: 2px; }
-        #login-screen { position: fixed; inset: 0; background: rgba(5,5,5,0.95); display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 100; }
-        .btn { background: var(--neon-pink); color: white; border: none; padding: 15px 30px; cursor: pointer; box-shadow: 0 0 15px var(--neon-pink); font-weight: bold; transition: 0.3s; pointer-events: auto; }
-        .btn:hover { transform: scale(1.05); filter: brightness(1.2); }
-        #leaderboard { position: absolute; right: 20px; top: 100px; background: rgba(0,0,0,0.7); border: 1px solid var(--neon-blue); padding: 15px; font-size: 14px; pointer-events: auto; min-width: 150px; }
-        .rank-item { margin: 8px 0; border-bottom: 1px solid rgba(0,242,255,0.2); padding-bottom: 4px; }
+        body { margin: 0; background: #f0f4f8; font-family: sans-serif; overflow: hidden; touch-action: none; display: flex; flex-direction: column; align-items: center; }
+        #ui-layer { width: 100%; padding: 15px; display: flex; justify-content: space-between; box-sizing: border-box; background: white; z-index: 10; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+        .score-box { color: #333; font-weight: bold; font-size: 18px; }
+        #game-container { position: relative; width: 360px; height: 500px; margin-top: 20px; background: #fff; border: 4px solid #333; border-radius: 8px; overflow: hidden; }
+        .arrow { position: absolute; border: 2px solid #000; border-radius: 4px; cursor: pointer; transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1); display: flex; align-items: center; justify-content: center; }
+        .arrow-head { width: 0; height: 0; border-style: solid; position: absolute; }
+        
+        /* 登入蓋板 */
+        #login-screen { position: fixed; inset: 0; background: #fff; display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 100; }
+        .btn { background: #4a90e2; color: white; border: none; padding: 12px 24px; border-radius: 25px; font-size: 16px; font-weight: bold; cursor: pointer; }
     </style>
 </head>
 <body>
 
 <div id="login-screen">
-    <h1 style="color:var(--neon-blue); text-shadow: 0 0 20px var(--neon-blue); letter-spacing: 10px;">CYBER ARROW</h1>
-    <p style="color:rgba(255,255,255,0.6); margin-bottom: 30px;">進入賽博空間以同步排行</p>
-    <button class="btn" onclick="liff.login()">LINE 登入</button>
+    <h1 style="color:#333; margin-bottom: 5px;">一箭又一箭</h1>
+    <p style="color:#888; margin-bottom: 30px;">解開所有重疊的箭頭吧！</p>
+    <button class="btn" onclick="liff.login()">開始挑戰</button>
 </div>
 
 <div id="ui-layer">
-    <div class="hud">
-        <div class="score-box">SCORE: <span id="score">0</span></div>
-        <button class="btn" style="padding:8px 15px; font-size: 12px;" onclick="uploadCurrentScore()">上傳最高分</button>
-    </div>
-    <div id="leaderboard">
-        <div style="color:var(--neon-pink); font-weight: bold; margin-bottom:10px; border-bottom: 2px solid var(--neon-pink);">GLOBAL TOP 5</div>
-        <div id="rank-list">讀取中...</div>
-    </div>
+    <div class="score-box">已解開: <span id="score">0</span></div>
+    <button class="btn" style="padding:5px 15px; font-size: 12px;" onclick="uploadCurrentScore()">同步排行</button>
+</div>
+
+<div id="game-container" id="board">
+    <!-- 箭頭會經由 JS 生成 -->
 </div>
 
 <script>
-// --- 核心配置 (已根據你的資訊填寫) ---
-const LIFF_ID = "2010069700-ApwAjal4"; 
-const SB_URL = "https://lqbqgycbyuxjodepxpfe.supabase.co"; 
-const SB_KEY = "Sb_publishable__ccuRo8VOesRE-llsSaRGw_yXvEIlkk"; 
+const LIFF_ID = "2010069700-ApwAjal4";
+const SB_URL = "https://lqbqgycbyuxjodepxpfe.supabase.co";
+const SB_KEY = "Sb_publishable__ccuRo8VOesRE-llsSaRGw_yXvEIlkk";
 
 const supabaseClient = supabase.createClient(SB_URL, SB_KEY);
 let currentScore = 0;
 let userProfile = null;
+let arrows = [];
+
+// 箭頭方向配置
+const DIRS = {
+    UP: { x: 0, y: -1, color: '#FF5A5F' },
+    DOWN: { x: 0, y: 1, color: '#00A699' },
+    LEFT: { x: -1, y: 0, color: '#FC642D' },
+    RIGHT: { x: 1, y: 0, color: '#484848' }
+};
 
 async function initGame() {
-    try {
-        await liff.init({ liffId: LIFF_ID });
-        if (liff.isLoggedIn()) {
-            userProfile = await liff.getProfile();
-            document.getElementById('login-screen').style.display = 'none';
-            loadLeaderboard();
-            createGameScene();
+    await liff.init({ liffId: LIFF_ID });
+    if (liff.isLoggedIn()) {
+        userProfile = await liff.getProfile();
+        document.getElementById('login-screen').style.display = 'none';
+        generateLevel();
+    }
+}
+
+function generateLevel() {
+    const container = document.getElementById('game-container');
+    container.innerHTML = '';
+    arrows = [];
+    
+    // 建立一個簡單的測試關卡（模擬圖片中的交錯感）
+    // 格式: { x, y, w, h, dir }
+    const levelData = [
+        { id: 1, x: 50, y: 100, w: 200, h: 40, dir: 'RIGHT' },
+        { id: 2, x: 210, y: 50, w: 40, h: 150, dir: 'UP' },
+        { id: 3, x: 40, y: 150, w: 40, h: 200, dir: 'DOWN' },
+        { id: 4, x: 20, y: 280, w: 300, h: 40, dir: 'LEFT' },
+        { id: 5, x: 100, y: 200, w: 150, h: 40, dir: 'RIGHT' },
+        { id: 6, x: 150, y: 80, w: 40, h: 300, dir: 'DOWN' }
+    ];
+
+    levelData.forEach(data => {
+        const div = document.createElement('div');
+        div.className = 'arrow';
+        div.style.left = data.x + 'px';
+        div.style.top = data.y + 'px';
+        div.style.width = data.w + 'px';
+        div.style.height = data.h + 'px';
+        div.style.backgroundColor = DIRS[data.dir].color;
+        
+        // 加入箭頭小三角形
+        const head = document.createElement('div');
+        head.className = 'arrow-head';
+        applyArrowHeadStyle(head, data.dir);
+        div.appendChild(head);
+
+        div.onclick = () => tryMove(data, div);
+        container.appendChild(div);
+        arrows.push({ ...data, element: div, active: true });
+    });
+}
+
+function applyArrowHeadStyle(head, dir) {
+    const size = 10;
+    if (dir === 'RIGHT') { head.style.borderWidth = `${size}px 0 ${size}px ${size}px`; head.style.borderColor = `transparent transparent transparent white`; head.style.right = '5px'; }
+    if (dir === 'LEFT') { head.style.borderWidth = `${size}px ${size}px ${size}px 0`; head.style.borderColor = `transparent white transparent transparent`; head.style.left = '5px'; }
+    if (dir === 'UP') { head.style.borderWidth = `0 ${size}px ${size}px ${size}px`; head.style.borderColor = `transparent transparent white transparent`; head.style.top = '5px'; }
+    if (dir === 'DOWN') { head.style.borderWidth = `${size}px ${size}px 0 ${size}px`; head.style.borderColor = `white transparent transparent transparent`; head.style.bottom = '5px'; }
+}
+
+function tryMove(arrow, element) {
+    if (!arrow.active) return;
+
+    const dir = DIRS[arrow.dir];
+    let blocked = false;
+
+    // 簡單的 2D 碰撞檢查
+    arrows.forEach(other => {
+        if (!other.active || other.id === arrow.id) return;
+
+        // 判斷移動路徑上是否有其他方塊
+        if (arrow.dir === 'RIGHT' && other.x > arrow.x && !(other.y + other.h <= arrow.y || other.y >= arrow.y + arrow.h)) blocked = true;
+        if (arrow.dir === 'LEFT' && other.x < arrow.x && !(other.y + other.h <= arrow.y || other.y >= arrow.y + arrow.h)) blocked = true;
+        if (arrow.dir === 'UP' && other.y < arrow.y && !(other.x + other.w <= arrow.x || other.x >= arrow.x + arrow.w)) blocked = true;
+        if (arrow.dir === 'DOWN' && other.y > arrow.y && !(other.x + other.w <= arrow.x || other.x >= arrow.x + arrow.w)) blocked = true;
+    });
+
+    if (blocked) {
+        // 抖動特效
+        element.style.transform = `translate(${dir.x * 10}px, ${dir.y * 10}px)`;
+        setTimeout(() => { element.style.transform = 'translate(0,0)'; }, 100);
+    } else {
+        // 飛出螢幕
+        arrow.active = false;
+        element.style.transform = `translate(${dir.x * 600}px, ${dir.y * 600}px)`;
+        currentScore++;
+        document.getElementById('score').innerText = currentScore;
+        
+        // 檢查是否全破
+        if(arrows.every(a => !a.active)) {
+            setTimeout(() => { alert("恭喜通關！"); generateLevel(); }, 500);
         }
-    } catch (err) { console.error(err); }
+    }
 }
 
 async function uploadCurrentScore() {
     if(!userProfile) return;
     const { error } = await supabaseClient.from('leaderboard').upsert({
-        line_id: userProfile.userId,
-        username: userProfile.displayName,
-        picture_url: userProfile.pictureUrl,
-        score: currentScore
+        line_id: userProfile.userId, username: userProfile.displayName,
+        picture_url: userProfile.pictureUrl, score: currentScore
     }, { onConflict: 'line_id' });
-    if(!error) { alert("分數已同步！"); loadLeaderboard(); }
-}
-
-async function loadLeaderboard() {
-    const { data } = await supabaseClient.from('leaderboard').select('username, score').order('score', {ascending: false}).limit(5);
-    const list = document.getElementById('rank-list');
-    if (data) { list.innerHTML = data.map((item, index) => `<div class="rank-item">${index + 1}. ${item.username} - ${item.score}</div>`).join(''); }
-}
-
-function createGameScene() {
-    const scene = new THREE.Scene();
-    const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
-    const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
-    renderer.setSize(window.innerWidth, window.innerHeight);
-    document.body.appendChild(renderer.domElement);
-
-    const light = new THREE.PointLight(0x00f2ff, 2, 100);
-    light.position.set(5, 5, 5);
-    scene.add(light, new THREE.AmbientLight(0x404040));
-    camera.position.z = 5;
-
-    const geometry = new THREE.BoxGeometry(1.2, 1.2, 1.2);
-    const cube = new THREE.Mesh(geometry, new THREE.MeshPhongMaterial({ color: 0x000000, emissive: 0x00f2ff, emissiveIntensity: 0.5 }));
-    cube.add(new THREE.LineSegments(new THREE.EdgesGeometry(geometry), new THREE.LineBasicMaterial({ color: 0xff00ff })));
-    scene.add(cube);
-
-    const raycaster = new THREE.Raycaster();
-    const mouse = new THREE.Vector2();
-
-    window.addEventListener('click', (e) => {
-        mouse.x = (e.clientX / window.innerWidth) * 2 - 1;
-        mouse.y = -(e.clientY / window.innerHeight) * 2 + 1;
-        raycaster.setFromCamera(mouse, camera);
-        if (raycaster.intersectObject(cube).length > 0) {
-            currentScore += 10;
-            document.getElementById('score').innerText = currentScore;
-            cube.position.x += 15;
-            setTimeout(() => { cube.position.x = (Math.random() - 0.5) * 4; cube.position.y = (Math.random() - 0.5) * 3; }, 400);
-        }
-    });
-
-    function animate() { requestAnimationFrame(animate); cube.rotation.x += 0.01; cube.rotation.y += 0.01; renderer.render(scene, camera); }
-    animate();
+    if(!error) alert("分數已同步！");
 }
 
 initGame();
